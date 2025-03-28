@@ -1,0 +1,81 @@
+[workspace.package]
+edition = "2021"
+
+[workspace]
+resolver = "2"
+members = [ "api","core"]
+
+[workspace.dependencies]
+#----------Inner crates----------
+core = { path="core" }
+api = { path="api" }
+
+#--------Backend framework--------
+axum = { version = "0.8.1", features = ["multipart", "tracing"] }
+
+#-----------Async deps-----------
+tokio = { version = "1.43.0", features = ["full"] }
+async-trait = "0.1.86"
+
+#---------Serialization----------
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.135"
+lazy-regex = "3.4.1"
+
+#------------OpenAPI-------------
+utoipa = { version = "5.3.1", features = ["axum_extras"] }
+utoipa-swagger-ui = {version = "9.0.0", features = ["axum"] }
+utoipa-axum = "0.2.0"
+
+#------------Logging-------------
+tracing-subscriber = {version = "0.3.19", features = ["env-filter"]}
+tracing = {version = "0.1.41", features = ["default"]}
+tower-http = { version = "0.6.2", features = ["trace"]}
+
+#------------Time-------------
+chrono = "0.4.39"
+
+#------------Bytes-------------
+bytes = "1.10.0"
+
+#----------Parsing env-----------
+once_cell = { version = "1.20.3", features = ["default"]} # once compiling config
+
+#----------Enum as int-----------
+strum_macros = "0.27.0"
+strum = "0.27.0"
+
+[package]
+name = "svaha_mini_uploader_axum"
+version = "0.1.0"
+edition.workspace = true
+description = "Axum uploader for svaha-mini"
+
+[dependencies]
+#----------Inner crates----------
+core.workspace = true
+api.workspace = true
+
+#-----------Async deps-----------
+tokio.workspace = true
+
+#------------Logging-------------
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tower-http = { workspace = true, features = ["cors"]}
+
+#--------Backend framework--------
+axum = { workspace = true, features = ["multipart"] }
+
+#---------Serialization----------
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+
+
+#------------OpenAPI-------------
+utoipa = { workspace = true, features = ["axum_extras"] }
+utoipa-swagger-ui = { workspace = true, features = ["axum"] }
+utoipa-axum.workspace = true
+
+#------------Bytes-------------
+bytes.workspace = true
