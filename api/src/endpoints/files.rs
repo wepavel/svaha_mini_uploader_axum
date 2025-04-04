@@ -16,45 +16,64 @@ use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
 use tracing::{info_span, Span};
 use bytes::{Bytes as BBytes, BytesMut};
 use crate::exceptions::{JsonResponse, ErrorCode, BadResponseObject};
+use once_cell::sync::Lazy;
+use serde_json::json;
 
-const CHUNK_SIZE: usize = 1024 * 1024 * 5; // 1 MB chunks, adjust as needed
 const TAG: &str = "Upload";
+pub fn get_router() -> OpenApiRouter {
+    OpenApiRouter::new().routes(routes!(upload_tracks))
+}
+
+const CHUNK_SIZE: usize = 1024 * 1024 * 5; // 5 MB chunks, adjust as needed
+static ALLOWED_EXTENSIONS: Lazy<Vec<&'static str>> = Lazy::new(|| {
+    vec![
+        ".ogg",
+        ".mp3",
+        ".wav",
+        ".flac",
+        ".m4a",
+        "",
+    ]
+});
 
 /// Just a schema for axum native multipart
 #[derive(Deserialize, ToSchema)]
 #[allow(unused)]
-struct HelloForm {
+struct UploadTracksForm {
     #[schema(format = Binary, content_media_type = "application/octet-stream")]
     vocal: String,
     #[schema(format = Binary, content_media_type = "application/octet-stream")]
     instrumental: String,
-    name: String,
+    // name: String,
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
-struct Sas {
-    sas: String
+#[derive(Deserialize, Serialize, ToSchema, Default)]
+#[schema(example = json!({
+    "vocal_name": "vocal.mp3",
+    "vocal_size": 1024,
+    "instrumental_name": "instrumental.mp3",
+    "instrumental_size": 1024
+}))]
+struct FilesRespForm {
+    vocal_name: String,
+    vocal_size: u64,
+    instrumental_name: String,
+    instrumental_size: u64,
 }
 
 #[utoipa::path(
     post,
-    path = "/hello_world",
+    path = "/upload-tracks",
     tag = TAG,
-    description = "SAS",
-    request_body(content = HelloForm, content_type = "multipart/form-data", description = "Hello guys!"),
+    description = "Endpoint for uploading two files: vocal and instrumental",
+    request_body(content = UploadTracksForm, content_type = "multipart/form-data", description = "Hello guys!"),
     responses(
-        (status = 200, body = Sas, description = "Pet stored successfully",
-            examples(
-                ("Demo" = (summary = "This is summary", description = "Long description",
-                            value = json!(Sas{sas: "Demo".to_string()}))),
-                ("John" = (summary = "Another user", value = json!({"name": "John"})))
-            )
-        ),
+        (status = 200, body = FilesRespForm, description = "Tracks uploaded successfully!"),
         (status = 400, description = "Bad request", body = BadResponseObject, example = json!(BadResponseObject::default_400())),
         (status = 500, description = "Internal server error", body = BadResponseObject, example = json!(BadResponseObject::default_500())),
     )
 )]
-pub async fn hello_form(mut multipart: Multipart) -> String {
+async fn upload_tracks(mut multipart: Multipart) -> String {
     let mut name: Option<String> = None;
     let mut content_type: Option<String> = None;
     let mut total_size: usize = 0;
@@ -122,6 +141,3 @@ fn process_fixed_size_chunk(chunk: &Bytes) {
     // Здесь вы можете выполнять любую нужную обработку чанка
 }
 
-pub fn get_router() -> OpenApiRouter {
-    OpenApiRouter::new().routes(routes!(hello_form))
-}

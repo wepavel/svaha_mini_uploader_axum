@@ -4,7 +4,11 @@ use utoipa_axum::routes;
 use my_core::config::CONFIG;
 use crate::exceptions::{ErrorCode, BadResponseObject, HtmlResponse};
 use axum::response::Html as AxumHtml;
+
 const TAG: &str = "WebUI";
+pub fn get_router() -> OpenApiRouter {
+    OpenApiRouter::new().routes(routes!(upload_ui))
+}
 
 #[utoipa::path(
     get,
@@ -34,9 +38,7 @@ pub async fn upload_ui(Path((session_id, track_id, file_type)): Path<(String, St
 }
 
 
-pub fn get_router() -> OpenApiRouter {
-    OpenApiRouter::new().routes(routes!(upload_ui))
-}
+
 
 fn file_upload_html(session_id: &str, track_id: &str, file_type: &str) -> String {
     let p0 = r#"

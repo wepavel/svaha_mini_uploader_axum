@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 #--------Backend framework--------
 axum = { workspace = true, features = ["default"] }
-http-body-util = "0.1.2"
+#http-body-util = "0.1.2"
 
 #------------Logging-------------
 tracing.workspace = true
@@ -19,20 +19,17 @@ chrono.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 lazy-regex.workspace = true
+once_cell = {workspace = true, features = ["default"]} # once compiling config
 
 #-----------Async deps-----------
-async-trait.workspace = true
+#async-trait.workspace = true
 
 #----------Parsing env-----------
-once_cell = {workspace = true, features = ["default"]} # once compiling config
+
 dotenv.workspace = true # work with dotenv
 clap.workspace = true # .env struct parser
 
 #----------Enum as int-----------
-strum_macros.workspace = true
-strum.workspace = true
+#strum_macros.workspace = true
+#strum.workspace = true
 
-#------------OpenAPI-------------
-#utoipa = { workspace = true, features = ["axum_extras"] }
-#utoipa-swagger-ui = { workspace = true, features = ["axum"] }
-#utoipa-axum.workspace = true

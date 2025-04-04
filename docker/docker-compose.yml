@@ -1,0 +1,14 @@
+services:
+  uploader:
+    image: '${DOCKER_IMAGE_UPLOADER}:${TAG-latest}'
+    #    env_file:
+    #      - .env
+    secrets:
+      - env_file
+
+    volumes:
+      - .:/app/  # Монтируем текущую директорию в /app внутри контейнера
+
+secrets:
+  env_file:
+    file: ./.env

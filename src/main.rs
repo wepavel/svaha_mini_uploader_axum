@@ -49,9 +49,10 @@ async fn main() -> std::io::Result<()> {
 
     // let sas = router.into_make_service_with_connect_info();
 
-    let (router, api) = get_api();
-    let router = router
-        .merge(SwaggerUi::new("/docs").url("/api/v1/openapi.json", api))
+    let mut router = get_api();
+
+    router = router
+        // .merge(SwaggerUi::new("/docs").url("/api/v1/openapi.json", api))
         .layer(cors)
         .layer(RequestDecompressionLayer::new())  // Сначала разжимаем входящие запросы
         .layer(CompressionLayer::new())  // Затем сжимаем исходящие ответы
@@ -60,8 +61,6 @@ async fn main() -> std::io::Result<()> {
         .layer(custom_tracing::create_tracing_layer())
         .layer(middleware::from_fn(global_error_handler))
     ;
-
-
 
     let app = router
         .into_make_service_with_connect_info::<SocketAddr>();

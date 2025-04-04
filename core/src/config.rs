@@ -50,7 +50,11 @@ pub struct Config {
 
     #[arg(long, env, default_value = "./")]
     pub base_upload_dir: String,
+
+    #[arg(long, env, default_value = "false")]
+    pub production: bool,
 }
+
 
 
 impl Config {
@@ -71,7 +75,6 @@ impl Config {
                 match dotenv::from_path(&env_path) {
                     Ok(_) => {
                         tracing::debug!("Using config from: {}", env_path.display());
-                        // return Ok(Config::parse());
                         return Config::parse_and_set_defaults();
                     }
                     Err(e) => {

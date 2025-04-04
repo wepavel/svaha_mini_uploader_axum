@@ -95,6 +95,7 @@ pub fn create_tracing_layer() -> TraceLayer<
 > {
     TraceLayer::new_for_http()
         .make_span_with(|request: &Request<Body>| {
+
             let remote_addr: String = get_real_ip(request)
                 .map(|ip| ip.to_string())
                 .unwrap_or_else(|| "unknown".to_string());
@@ -122,10 +123,19 @@ pub fn create_tracing_layer() -> TraceLayer<
             let json_string = serde_json::to_string(&request_info).unwrap();
             let trimmed_json = json_string.trim_start_matches('{').trim_end_matches('}');
 
-            tracing::info_span!(
-                "\"http_request\":",
-                "{}", trimmed_json
-            )
+            // tracing::info_span!(
+            //     "\"http_request\":",
+            //     "{}", trimmed_json
+            // )
+            if request.uri().path() == "/favicon.ico" {
+                // Создаем пустой span для favicon.ico
+                tracing::Span::none()
+            } else {
+                tracing::info_span!(
+                    "\"http_request\":",
+                    "{}", trimmed_json
+                )
+            }
         })
         .on_request(|request: &Request<Body>, _span: &Span| {
 
@@ -135,17 +145,19 @@ pub fn create_tracing_layer() -> TraceLayer<
                 "Request received"
             );
         })
-        .on_response(|response: &Response<Body>, latency: Duration, _span: &Span| {
-            let status = response.status().as_u16();
-            let msg = response.status().canonical_reason().unwrap_or("Unknown");
+        .on_response(|response: &Response<Body>, latency: Duration, span: &Span| {
+            if !span.is_none() {
+                let status = response.status().as_u16();
+                let msg = response.status().canonical_reason().unwrap_or("Unknown");
 
-            let log = json!({
-                "status": status,
-                "message": msg,
-                "duration": format!("{:?}", latency)
-            });
+                let log = json!({
+                    "status": status,
+                    "message": msg,
+                    "duration": format!("{:?}", latency)
+                });
 
-            tracing::info!(target: "http_response", "\"http_response\":{}", serde_json::to_string(&log).unwrap());
+                tracing::info!(target: "http_response", "\"http_response\":{}", serde_json::to_string(&log).unwrap());
+            }
 
         })
         .on_body_chunk(|_chunk: &Bytes, _latency: Duration, _span: &Span| {

@@ -10,15 +10,13 @@ use axum::{
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{collections::HashMap, error::Error as StdError, any::Any};
-
-
+use lazy_regex::regex;
 use strum_macros::{EnumIter, AsRefStr};
 
 use axum::extract::{MatchedPath};
 
 use serde_json::json;
 use std::fmt;
-use lazy_static::lazy_static;
 use utoipa::ToSchema;
 
 // Определение BadResponseObject
@@ -169,95 +167,17 @@ impl From<ErrorCode> for BadResponseObject {
         error_code.details()
     }
 }
-
-
-// pub async fn global_error_handler(
-//     request: Request,
-//     next: Next,
-// ) -> Result<impl IntoResponse, Response> {
-//     let (parts, body) = request.into_parts();
-//     let bytes = match body.collect().await {
-//         Ok(collected) => collected.to_bytes(),
-//         Err(err) => {
-//             let error_response = BadResponseObject {
-//                 code: 5000,
-//                 msg: format!("Failed to read request body: {}", err),
-//                 ..Default::default()
-//             };
-//             // return (StatusCode::INTERNAL_SERVER_ERROR, AxumJson(error_response)).into_response();
-//             return Err(StatusCode::INTERNAL_SERVER_ERROR, AxumJson(error_response)).into_response())
-//         }
-//     };
-//
-//     let request = Request::from_parts(parts, Body::from(bytes));
-//     let response = next.run(request).await;
-//
-//     if let Some(error) = response.extensions().get::<Box<dyn StdError + Send + Sync>>() {
-//         let error_response = if let Some(bad_response) = error.downcast_ref::<BadResponseObject>() {
-//             bad_response.clone()
-//         } else {
-//             BadResponseObject {
-//                 code: 5999,
-//                 msg: format!("Internal Server Error: {}", error),
-//                 ..Default::default()
-//             }
-//         };
-//
-//         let status = if (4000..5000).contains(&error_response.code) {
-//             StatusCode::BAD_REQUEST
-//         } else {
-//             StatusCode::INTERNAL_SERVER_ERROR
-//         };
-//
-//         (status, AxumJson(error_response)).into_response()
-//     } else if response.status().is_server_error() {
-//         let error_response = BadResponseObject {
-//             code: 5000,
-//             msg: "Unexpected Server Error".to_string(),
-//             ..Default::default()
-//         };
-//         (StatusCode::INTERNAL_SERVER_ERROR, AxumJson(error_response)).into_response()
-//     } else {
-//         response
-//     }
-// }
-
-// pub async fn global_error_handler(
-//     request: Request,
-//     next: Next,
-// ) -> Result<impl IntoResponse, Response> {
-//     let response = next.run(request).await;
-//
-//     if response.status().is_server_error() {
-//         let error_response = BadResponseObject {
-//             code: 5000,
-//             msg: "Unexpected Server Error".to_string(),
-//             ..Default::default()
-//         };
-//         Ok((StatusCode::INTERNAL_SERVER_ERROR, AxumJson(error_response)))
-//     } else if let Some(error) = response.extensions().get::<Box<dyn StdError + Send + Sync>>() {
-//         let error_response = if let Some(bad_response) = error.downcast_ref::<BadResponseObject>() {
-//             bad_response.clone()
-//         } else {
-//             BadResponseObject {
-//                 code: 5999,
-//                 msg: format!("Internal Server Error: {}", error),
-//                 ..Default::default()
-//             }
-//         };
-//
-//         let status = if (4000..5000).contains(&error_response.code) {
-//             StatusCode::BAD_REQUEST
-//         } else {
-//             StatusCode::INTERNAL_SERVER_ERROR
-//         };
-//
-//         Ok((status, AxumJson(error_response)))
-//     } else {
-//         Err(response)
-//     }
-// }
 //-------------------------------------------------------------------------
+fn clear_error_message(message: &str) -> String {
+    let re_unreadable = regex!(r"\(�/�\x00X.\x01\x00");
+    let re_unwanted = regex!(r"[^a-zA-Zа-яА-Я0-9\s:\-,.'`]");
+
+    let without_unreadable = re_unreadable.replace_all(message, "");
+    let cleaned = re_unwanted.replace_all(&without_unreadable, "");
+
+    cleaned.trim().to_string()
+}
+
 fn handle_server_error(endpoint: &str) -> (StatusCode, AxumJson<BadResponseObject>) {
     let error_response = BadResponseObject {
         code: 5000,
@@ -268,9 +188,11 @@ fn handle_server_error(endpoint: &str) -> (StatusCode, AxumJson<BadResponseObjec
 }
 
 fn handle_path_rejection(body: &[u8], endpoint: &str) -> (StatusCode, AxumJson<BadResponseObject>) {
-    let error_message = String::from_utf8_lossy(body).into_owned();
+    let error_message = String::from_utf8_lossy(body);
+    let cleaned_message = clear_error_message(&error_message);
+
     let error_response = ErrorCode::ValidationError.details()
-        .with_detail("reason", error_message)
+        .with_detail("reason", cleaned_message)
         .with_detail("endpoint", endpoint);
     (StatusCode::BAD_REQUEST, AxumJson(error_response))
 }

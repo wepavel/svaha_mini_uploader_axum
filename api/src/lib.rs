@@ -6,25 +6,28 @@ pub mod exceptions;
 use my_core::config::CONFIG;
 use utoipa_axum::router::OpenApiRouter;
 use axum::Router;
-use axum::routing::get_service;
-use tower_http::services::ServeDir;
-// use endpoints::files::__path_hello_form;
+use utoipa_swagger_ui::SwaggerUi;
+
 use endpoints::{
     files, tests, webui
 };
 
 
-pub fn get_api() -> (Router, OpenApi) {
+pub fn get_api() -> Router {
 
-    let (router, mut api) = OpenApiRouter::new()
+    let (mut router, mut api) = OpenApiRouter::new()
         .nest(&format!("{}upload", CONFIG.api_v1_str.as_str()), files::get_router())
         .nest(&format!("{}test", CONFIG.api_v1_str.as_str()), tests::get_router())
         .nest(&format!("{}upload-ui", CONFIG.api_v1_str.as_str()), webui::get_router())
         .split_for_parts();
 
-    api.info = Info::new("svaha-mini-uploader", "1.0.0");
-    api.info.description = Some("Upload best files!".to_string());
+    api.info = Info::new("Svaha-Mini Uploader", "1.0.0");
+    api.info.description = Some("This is world best uploader, writed on RUST!".to_string());
 
-    (router, api)
+    if !CONFIG.production {
+        router = router.merge(SwaggerUi::new("/docs").url(format!("{}openapi.json", CONFIG.api_v1_str.as_str()), api));
+    }
+
+    router
 }
 

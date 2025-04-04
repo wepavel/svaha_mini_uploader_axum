@@ -1,0 +1,22 @@
+services:
+  uploader:
+    #    ports:
+    #     - 127.0.0.1:8001:8001  # Host
+
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    #      - .:/app/
+    environment:
+      - TERM=`xterm-256color`
+      #- PORT=8001
+
+    network_mode: "host"
+
+    build:
+      context: ./
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-true}
+
+    tty: true
+    #    command: ["/bin/bash", "-c", "source /run/secrets/env_file && /app/root/start-reload.sh"]
+    command: ["/bin/bash", "-c", "set -a && . /run/secrets/env_file && set +a && /app/root/start-reload.sh"]

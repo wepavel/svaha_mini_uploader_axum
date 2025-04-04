@@ -13,6 +13,9 @@ use tracing;
 use serde_json::json;
 
 const TAG: &str = "Test";
+pub fn get_router() -> OpenApiRouter {
+    OpenApiRouter::new().routes(routes!(test_endpoint))
+}
 
 #[derive(Serialize)]
 struct SAS {
@@ -47,7 +50,7 @@ impl PUK {
         (status = 500, description = "Internal server error", body = BadResponseObject, example = json!(BadResponseObject::default_500())),
     )
 )]
-pub async fn test_endpoint(Path(number): Path<u64>) -> JsonResponse {
+async fn test_endpoint(Path(number): Path<i32>) -> JsonResponse {
     if number == 2 {
         return JsonResponse::from(ErrorCode::AuthorizeError.details()
             .with_detail("reason", "You have already taken access to this endpoint."));
@@ -61,6 +64,3 @@ pub async fn test_endpoint(Path(number): Path<u64>) -> JsonResponse {
     JsonResponse::Ok(json!(x))
 }
 
-pub fn get_router() -> OpenApiRouter {
-    OpenApiRouter::new().routes(routes!(test_endpoint))
-}

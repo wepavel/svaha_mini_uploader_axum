@@ -3,15 +3,15 @@ edition = "2021"
 
 [workspace]
 resolver = "2"
-members = [ "api","core"]
+members = ["api","core"]
 
 [workspace.dependencies]
 #----------Inner crates----------
-core = { path="core" }
-api = { path="api" }
+core = {path="core"}
+api = {path="api"}
 
 #--------Backend framework--------
-axum = { version = "0.8.1", features = ["multipart", "tracing"] }
+axum = {version = "0.8.3", features = ["multipart", "tracing"]}
 
 #-----------Async deps-----------
 tokio = { version = "1.44.1", features = ["full"] }
@@ -40,14 +40,15 @@ chrono = "0.4.40"
 bytes = "1.10.1"
 
 #----------Parsing env-----------
-once_cell = { version = "1.21.2", features = ["default"]} # once compiling config
+once_cell = {version = "1.21.3", features = ["default"]} # once compiling config
 dotenv = {version = "0.15.0", features = ["clap"]}
-clap = {version = "4.5.34", features = ["env", "derive", "help"]}
+clap = {version = "4.5.35", features = ["env", "derive", "help"]}
 
 #----------Enum as int-----------
 strum_macros = "0.27.1"
 strum = "0.27.1"
 
+#----------------------------MAIN CRATE-------------------------------
 [package]
 name = "svaha_mini_uploader_axum"
 version = "0.1.0"
@@ -68,14 +69,8 @@ tracing-subscriber.workspace = true
 tower-http = { workspace = true, features = ["cors"]}
 
 #--------Backend framework--------
-axum = { workspace = true, features = ["default"] }
-
-#---------Serialization----------
-serde = { workspace = true, features = ["derive"] }
-serde_json.workspace = true
-
+axum = {workspace = true, features = ["default"]}
 
 #------------OpenAPI-------------
-utoipa = { workspace = true, features = ["axum_extras"] }
-utoipa-swagger-ui = { workspace = true, features = ["axum"] }
-#utoipa-axum.workspace = true
+utoipa = {workspace = true, features = ["axum_extras"]}
+utoipa-swagger-ui = {workspace = true, features = ["axum"]}

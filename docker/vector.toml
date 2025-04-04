@@ -1,0 +1,45 @@
+[sinks]
+
+[sinks.console]
+inputs = ["json_parser"]
+type = "console"
+
+[sinks.console.encoding]
+codec = "json"
+
+[sinks.es_cluster]
+api_version = "v7"
+compression = "none"
+endpoints = ["https://127.0.0.1:9200"]
+inputs = ["json_parser"]
+mode = "bulk"
+type = "elasticsearch"
+
+[sinks.es_cluster.auth]
+password = "${ELASTIC_PASSWORD?err}"
+strategy = "basic"
+user = "${ELASTIC_USER?err}"
+
+[sinks.es_cluster.bulk]
+index = "backend-poit-logs-%Y-%m"
+#index = "backend-poit-logs"
+
+[sinks.es_cluster.tls]
+verify_certificate = false
+
+[sources.stdin]
+host_key = "host_key"
+type = "stdin"
+
+[transforms.json_parser]
+drop_on_error = false
+inputs = ["stdin"]
+source = '''
+value, err = parse_json(.message)
+
+if err == null {
+ .json = object!(value)
+ del(.message)
+}
+'''
+type = "remap"
