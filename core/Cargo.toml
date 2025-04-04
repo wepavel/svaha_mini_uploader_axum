@@ -25,7 +25,14 @@ async-trait.workspace = true
 
 #----------Parsing env-----------
 once_cell = {workspace = true, features = ["default"]} # once compiling config
+dotenv.workspace = true # work with dotenv
+clap.workspace = true # .env struct parser
 
 #----------Enum as int-----------
 strum_macros.workspace = true
 strum.workspace = true
+
+#------------OpenAPI-------------
+#utoipa = { workspace = true, features = ["axum_extras"] }
+#utoipa-swagger-ui = { workspace = true, features = ["axum"] }
+#utoipa-axum.workspace = true

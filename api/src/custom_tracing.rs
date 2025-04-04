@@ -99,19 +99,37 @@ pub fn create_tracing_layer() -> TraceLayer<
                 .map(|ip| ip.to_string())
                 .unwrap_or_else(|| "unknown".to_string());
 
-            let header_map: HeaderMap = request.headers().clone().into();
+            // let header_map: HeaderMap = request.headers().clone().into();
+
+            // let request_info = json!({
+            //     "method": request.method().to_string(),
+            //     "path": request.uri().to_string(),
+            //     "version": format!("{:?}", request.version()),
+            //     "host": remote_addr,
+            // });
+            //
+            // tracing::info_span!(
+            //     "\"http_request\":",
+            //     request = %serde_json::to_string(&request_info).unwrap()
+            // )
+            let request_info = json!({
+                "host": remote_addr,
+                "method": request.method().to_string(),
+                "path": request.uri().to_string(),
+                "version": format!("{:?}", request.version()),
+            });
+
+            let json_string = serde_json::to_string(&request_info).unwrap();
+            let trimmed_json = json_string.trim_start_matches('{').trim_end_matches('}');
 
             tracing::info_span!(
-                "http_request",
-                method = %request.method(),
-                path = %request.uri(),
-                version = ?request.version(),
-                host = remote_addr,
+                "\"http_request\":",
+                "{}", trimmed_json
             )
         })
         .on_request(|request: &Request<Body>, _span: &Span| {
 
-            tracing::info!(
+            tracing::trace!(
                 version = ?request.version(),
                 uri = %request.uri(),
                 "Request received"
@@ -127,15 +145,19 @@ pub fn create_tracing_layer() -> TraceLayer<
                 "duration": format!("{:?}", latency)
             });
 
-            tracing::info!(target: "http_response", "\"response\":{}", serde_json::to_string(&log).unwrap());
+            tracing::info!(target: "http_response", "\"http_response\":{}", serde_json::to_string(&log).unwrap());
+
         })
         .on_body_chunk(|_chunk: &Bytes, _latency: Duration, _span: &Span| {
             // You can add custom logic for body chunks if needed
+            tracing::trace!("Проблема в chunk");
         })
         .on_eos(|_trailers: Option<&HeaderMap>, _stream_duration: Duration, _span: &Span| {
+            tracing::trace!("Проблема в eos");
             // You can add custom logic for end of stream if needed
         })
         .on_failure(|error: ServerErrorsFailureClass, latency: Duration, _span: &Span| {
+            tracing::info!("Проблема в on_faulure");
             let (status, msg) = match &error {
                 ServerErrorsFailureClass::StatusCode(status) => (
                     status.as_u16(),
@@ -157,3 +179,4 @@ pub fn create_tracing_layer() -> TraceLayer<
             tracing::error!(target: "http_error", "\"error\":{}", serde_json::to_string(&log).unwrap());
         })
 }
+

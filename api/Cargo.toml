@@ -4,6 +4,12 @@ version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
+#----------Inner crates----------
+my_core = {package = "core", path="../core"}
+
+#-----------Async deps-----------
+tokio.workspace = true
+
 #------------Logging-------------
 tracing.workspace = true
 tracing-subscriber.workspace = true
@@ -12,9 +18,20 @@ tower-http = { workspace = true, features = ["trace"]}
 #---------Serialization----------
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
+lazy_static.workspace = true
 
 #--------Backend framework--------
 axum = { workspace = true, features = ["tracing"] }
 
+#------------OpenAPI-------------
+utoipa = { workspace = true, features = ["axum_extras"] }
+utoipa-swagger-ui = { workspace = true, features = ["axum"] }
+utoipa-axum.workspace = true
 
+#------------Bytes-------------
+bytes.workspace = true
 rfc7239 = "0.1.3"
+
+#----------Enum as int-----------
+strum_macros.workspace = true
+strum.workspace = true

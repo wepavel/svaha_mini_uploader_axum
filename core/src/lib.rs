@@ -1,3 +1,4 @@
 pub mod logging;
-pub mod exceptions;
+mod exceptions;
+pub mod config;
 
