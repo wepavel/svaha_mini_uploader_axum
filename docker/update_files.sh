@@ -17,7 +17,7 @@ copy_file() {
 # Определение путей
 ENV_SOURCE="../.env"
 ENV_DEST="./"
-BIN_SOURCE="../target/release/svaha_mini_uploader"
+BIN_SOURCE="../target/release/svaha_mini_uploader_axum"
 BIN_DEST="./app/"
 
 # Копирование файлов

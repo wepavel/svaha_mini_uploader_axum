@@ -213,7 +213,7 @@ pub fn init_logger() {
         std::env::set_var(
             "RUST_LOG",
             "api=debug,\
-            core=debug,\
+            my_core=debug,\
             tower_http=debug,\
             axum::rejection=trace,\
             services=debug,\
