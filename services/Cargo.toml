@@ -1,0 +1,29 @@
+[package]
+name = "services"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+#----------Inner crates----------
+my_core = {package = "core", path="../core"}
+
+#-----------Async deps-----------
+tokio.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+tokio-util.workspace = true
+
+#----------Generating data-----------
+ulid.workspace = true
+
+#---------Serialization----------
+anyhow.workspace = true
+
+#----------------AWS-----------------
+aws-sdk-s3.workspace = true
+
+#------------Bytes-------------
+bytes.workspace = true
+
+#------------Logging-------------
+tracing.workspace = true

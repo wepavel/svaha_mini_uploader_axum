@@ -6,9 +6,12 @@ edition.workspace = true
 [dependencies]
 #----------Inner crates----------
 my_core = {package = "core", path="../core"}
+services.workspace = true
 
 #-----------Async deps-----------
 tokio.workspace = true
+tokio-util.workspace = true
+futures-util = "0.3.31"
 
 #------------Logging-------------
 tracing.workspace = true

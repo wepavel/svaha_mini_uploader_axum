@@ -11,9 +11,11 @@ use axum::{Json, extract::Path};
 use serde::Serialize;
 use tracing;
 use serde_json::json;
+use services::AppState;
+use std::sync::Arc;
 
 const TAG: &str = "Test";
-pub fn get_router() -> OpenApiRouter {
+pub fn get_router(app_state: Arc<AppState>) -> OpenApiRouter {
     OpenApiRouter::new().routes(routes!(test_endpoint))
 }
 

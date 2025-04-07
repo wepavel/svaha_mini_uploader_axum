@@ -4,10 +4,12 @@ use utoipa_axum::routes;
 use my_core::config::CONFIG;
 use crate::exceptions::{ErrorCode, BadResponseObject, HtmlResponse};
 use axum::response::Html as AxumHtml;
+use services::AppState;
+use std::sync::Arc;
 
 const TAG: &str = "WebUI";
-pub fn get_router() -> OpenApiRouter {
-    OpenApiRouter::new().routes(routes!(upload_ui))
+pub fn get_router(app_state: Arc<AppState>) -> OpenApiRouter {
+    OpenApiRouter::new().routes(routes!(upload_ui)).with_state(app_state)
 }
 
 #[utoipa::path(
