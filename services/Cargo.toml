@@ -18,6 +18,7 @@ ulid.workspace = true
 
 #---------Serialization----------
 anyhow.workspace = true
+rfc7239.workspace = true
 
 #----------------AWS-----------------
 aws-sdk-s3.workspace = true
@@ -27,3 +28,12 @@ bytes.workspace = true
 
 #------------Logging-------------
 tracing.workspace = true
+
+#----------ERROR HANDLING-----------
+thiserror.workspace = true
+
+#------------Time-------------
+chrono.workspace = true
+
+#----------Generating data-----------
+rand.workspace = true

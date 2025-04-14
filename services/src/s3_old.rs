@@ -1,3 +1,5 @@
+// mod lib;
+
 use std::collections::HashSet;
 use std::path::Path;
 use aws_sdk_s3::{Client, Config, config::{Credentials, Region, BehaviorVersion}};
@@ -9,12 +11,11 @@ use aws_sdk_s3::operation::put_object::PutObjectOutput;
 use aws_sdk_s3::operation::create_bucket::CreateBucketOutput;
 use async_trait::async_trait;
 use anyhow::{Result, anyhow};
-use bytes::{Bytes, BytesMut};
+use bytes::Bytes;
 use ulid::Ulid;
 use tracing;
-use futures::{Stream, StreamExt};
-use tokio::io::AsyncRead;
-use tokio_util::io::ReaderStream;
+
+
 /// Manages interactions with Amazon S3 or compatible object storage services.
 #[derive(Debug, Clone)]
 pub struct S3Manager {
@@ -55,7 +56,7 @@ impl S3Manager {
     ///     Ok(())
     /// }
     /// ```
-    pub fn new(region: String, endpoint: Option<String>, credentials: Credentials) -> Result<Self> {
+    pub async fn new(region: String, endpoint: Option<String>, credentials: Credentials) -> Result<Self> {
         let region = Region::new(region);
         let mut config_builder = Config::builder()
             .region(region)
@@ -172,6 +173,7 @@ impl S3Manager {
             .send()
             .await?)
     }
+
     /// Lists objects in a bucket.
     ///
     /// # Arguments

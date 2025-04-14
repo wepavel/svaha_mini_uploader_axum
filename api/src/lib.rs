@@ -3,10 +3,12 @@ use utoipa::openapi::{Info, OpenApi};
 pub mod custom_tracing;
 mod endpoints;
 pub mod exceptions;
+pub mod custom_exceptions;
 
 use my_core::config::CONFIG;
 use utoipa_axum::router::OpenApiRouter;
 use axum::Router;
+
 use utoipa_swagger_ui::SwaggerUi;
 
 use endpoints::{
@@ -26,7 +28,8 @@ pub fn get_api(app_state: Arc<AppState>) -> Router {
     api.info.description = Some("This is world best uploader, writed on RUST!".to_string());
 
     if !CONFIG.production {
-        router = router.merge(SwaggerUi::new("/docs").url(format!("{}openapi.json", CONFIG.api_v1_str.as_str()), api));
+        router = router
+            .merge(SwaggerUi::new("/docs").url(format!("{}openapi.json", CONFIG.api_v1_str.as_str()), api));
     }
 
     router

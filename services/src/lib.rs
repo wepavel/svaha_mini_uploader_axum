@@ -1,4 +1,7 @@
+pub mod s3_old;
+
 pub mod s3;
+
 
 use s3::{S3Manager};
 use anyhow::Result;
@@ -10,8 +13,8 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new() -> Result<Self> {
-        // Create s3 manager
+    pub async fn new() -> Result<Self> {
+        // Create s3_old manager
         let region = CONFIG.s3_region_name.clone();
         let endpoint = CONFIG.s3_endpoint.to_str().expect("Invalid S3 endpoint").to_string();
         let access_key = CONFIG.s3_svaha_writer_login.clone();
@@ -25,7 +28,7 @@ impl AppState {
             "env",
         );
 
-        let s3 = S3Manager::new(region, Some(endpoint), credentials)?;
+        let s3 = S3Manager::new(region, Some(endpoint), credentials).await?;
 
         Ok(Self { s3 })
     }

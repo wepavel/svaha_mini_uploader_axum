@@ -54,7 +54,7 @@ impl BadResponseObject {
 
     pub fn with_detail_option(mut self, key: impl Into<String>, value: Option<impl Serialize>) -> Self {
         if let Some(v) = value {
-            self.details.insert(key.into(), serde_json::json!(v));
+            self.details.insert(key.into(), json!(v));
         }
         self
     }

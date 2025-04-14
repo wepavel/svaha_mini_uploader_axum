@@ -12,14 +12,15 @@ api = {path="api"}
 services = {path="services"}
 
 #--------Backend framework--------
-axum = {version = "0.8.3", features = ["multipart", "tracing", "macros"]}
+axum = {version = "0.8.3", features = ["multipart", "tracing"]}
 
 #-----------Async deps-----------
-tokio = { version = "1.44.1", features = ["full"] }
+tokio = { version = "1.44.2", features = ["full"] }
 tower-http = { version = "0.6.2", features = ["timeout", "trace", "compression-full", "decompression-full", "fs"]}
 async-trait = "0.1.88"
 futures = "0.3.31"
 tokio-util = "0.7.14"
+tower = "0.5.2"
 
 #---------Serialization----------
 serde = { version = "1.0.219", features = ["derive"] }
@@ -41,6 +42,7 @@ chrono = "0.4.40"
 
 #------------Bytes-------------
 bytes = "1.10.1"
+rfc7239 = "0.1.3"
 
 #----------Parsing env-----------
 once_cell = {version = "1.21.3", features = ["default"]} # once compiling config
@@ -53,9 +55,13 @@ strum = "0.27.1"
 
 #----------Generating data-----------
 ulid = "1.2.1"
+rand = "0.9.0"
 
 #----------------AWS-----------------
-aws-sdk-s3 = "1.52.0"
+aws-sdk-s3 = "1.82.0"
+
+#----------ERROR HANDLING-----------
+thiserror = "2.0.12"
 
 
 #----------------------------MAIN CRATE-------------------------------
