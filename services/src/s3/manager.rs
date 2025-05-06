@@ -7,42 +7,73 @@ use bytes::Bytes;
 use tokio::io::AsyncReadExt;
 use super::multipart::{MultipartUploadContext, MultipartUploadOptions};
 use super::errors::{Result, S3Error};
+use std::sync::Arc;
 
 /// Менеджер для взаимодействия с S3 или совместимым объектным хранилищем
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct S3Manager {
-    client: Client,
+    // client: Client,
+    client_factory: Arc<dyn Fn() -> Client + Send + Sync>,
 }
 
 impl S3Manager {
     /// Создает новый экземпляр S3Manager
+    // pub async fn new(region: String, endpoint: Option<String>, credentials: Credentials) -> Result<Self> {
+    //     let region = Region::new(region);
+    //     let mut config_builder = Config::builder()
+    //         .region(region)
+    //         .credentials_provider(credentials)
+    //         .behavior_version(BehaviorVersion::latest());
+    // 
+    //     if let Some(endpoint_url) = endpoint {
+    //         config_builder = config_builder.endpoint_url(endpoint_url);
+    //     }
+    // 
+    //     let config = config_builder.build();
+    //     let client = Client::from_conf(config);
+    // 
+    //     Ok(Self { client })
+    // }
+    // 
+    // /// Получает клиент AWS S3
+    // pub fn client(&self) -> &Client {
+    //     &self.client
+    // }
     pub async fn new(region: String, endpoint: Option<String>, credentials: Credentials) -> Result<Self> {
         let region = Region::new(region);
-        let mut config_builder = Config::builder()
-            .region(region)
-            .credentials_provider(credentials)
-            .behavior_version(BehaviorVersion::latest());
 
-        if let Some(endpoint_url) = endpoint {
-            config_builder = config_builder.endpoint_url(endpoint_url);
-        }
+        // Сохраняем параметры настройки
+        let region_clone = region.clone();
+        let endpoint_clone = endpoint.clone();
+        let credentials_clone = credentials.clone();
 
-        let config = config_builder.build();
-        let client = Client::from_conf(config);
+        // Создаем фабрику клиентов вместо одного клиента
+        let client_factory = Arc::new(move || {
+            let mut config_builder = Config::builder()
+                .region(region_clone.clone())
+                .credentials_provider(credentials_clone.clone())
+                .behavior_version(BehaviorVersion::latest());
 
-        Ok(Self { client })
+            if let Some(endpoint_url) = &endpoint_clone {
+                config_builder = config_builder.endpoint_url(endpoint_url.clone());
+            }
+
+            let config = config_builder.build();
+            Client::from_conf(config)
+        });
+
+        Ok(Self { client_factory })
     }
 
-    /// Получает клиент AWS S3
-    pub fn client(&self) -> &Client {
-        &self.client
+    // Получаем новый клиент для каждой операции
+    fn get_client(&self) -> Client {
+        (self.client_factory)()
     }
 
-    // ОСНОВНЫЕ ОПЕРАЦИИ С ОБЪЕКТАМИ
 
     /// Загружает объект в S3 из массива байтов
     pub async fn put_object(&self, bucket: &str, key: &str, data: Bytes) -> Result<PutObjectOutput> {
-        Ok(self.client
+        Ok(self.get_client()
             .put_object()
             .bucket(bucket)
             .key(key)
@@ -53,7 +84,7 @@ impl S3Manager {
 
     /// Скачивает объект из S3
     pub async fn get_object(&self, bucket: &str, key: &str) -> Result<GetObjectOutput> {
-        Ok(self.client
+        Ok(self.get_client()
             .get_object()
             .bucket(bucket)
             .key(key)
@@ -79,7 +110,7 @@ impl S3Manager {
         destination_object: &str,
     ) -> Result<()> {
         let source_key = format!("{source_bucket}/{source_object}");
-        let response = self.client
+        let response = self.get_client()
             .copy_object()
             .copy_source(&source_key)
             .bucket(destination_bucket)
@@ -95,7 +126,7 @@ impl S3Manager {
 
     /// Удаляет объект из бакета
     pub async fn delete_object(&self, bucket: &str, key: &str) -> Result<()> {
-        self.client
+        self.get_client()
             .delete_object()
             .bucket(bucket)
             .key(key)
@@ -112,7 +143,7 @@ impl S3Manager {
             .await
             .map_err(|e| S3Error::UploadError(format!("Failed to read file {}: {}", local_path, e)))?;
 
-        Ok(self.client
+        Ok(self.get_client()
             .put_object()
             .bucket(bucket)
             .key(key)
@@ -141,7 +172,7 @@ impl S3Manager {
         key: &str,
         options: Option<MultipartUploadOptions>
     ) -> Result<MultipartUploadContext> {
-        MultipartUploadContext::new(self.client.clone(), bucket, key, options).await
+        MultipartUploadContext::new(self.get_client(), bucket, key, options).await
     }
 
     /// Высокоуровневый метод для загрузки больших данных с автоматическим
@@ -163,7 +194,7 @@ impl S3Manager {
         }
 
         // Иначе используем многочастную загрузку
-        let context = self.create_multipart_upload_context(bucket, key, Some(options)).await?;
+        let mut context = self.create_multipart_upload_context(bucket, key, Some(options)).await?;
 
         let mut part_number = 1;
         let mut offset = 0;
@@ -186,7 +217,7 @@ impl S3Manager {
 
     /// Проверяет существование объекта в бакете
     pub async fn is_file(&self, bucket: &str, key: &str) -> Result<bool> {
-        match self.client
+        match self.get_client()
             .head_object()
             .bucket(bucket)
             .key(key)
@@ -231,7 +262,7 @@ impl S3Manager {
     /// Перечисляет объекты в бакете
     pub async fn list_objects(&self, bucket: &str) -> Result<Vec<String>> {
         let mut keys = Vec::new();
-        let mut paginator = self.client
+        let mut paginator = self.get_client()
             .list_objects_v2()
             .bucket(bucket)
             .into_paginator()
@@ -280,7 +311,7 @@ impl S3Manager {
             .map_err(|err| S3Error::Other(format!("Failed to build delete_object input: {}", err)))?;
 
         // Выполняем удаление
-        self.client
+        self.get_client()
             .delete_objects()
             .bucket(bucket)
             .delete(delete)
@@ -312,7 +343,7 @@ impl S3Manager {
     /// Создает бакет, если он не существует
     pub async fn ensure_bucket_exists(&self, bucket: &str) -> Result<()> {
         // Проверяем существование бакета
-        match self.client.head_bucket().bucket(bucket).send().await {
+        match self.get_client().head_bucket().bucket(bucket).send().await {
             Ok(_) => return Ok(()), // Бакет существует
             Err(err) => {
                 // Проверяем, является ли ошибка "бакет не найден"
@@ -327,7 +358,7 @@ impl S3Manager {
         }
 
         // Создаем бакет, если он не существует
-        self.client
+        self.get_client()
             .create_bucket()
             .bucket(bucket)
             .send()

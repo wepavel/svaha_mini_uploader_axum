@@ -13,4 +13,4 @@ echo "PWD $ls_result"
 
 echo "Host: "$HOST "Port: "$PORT
 
-./app/svaha_mini_uploader 2>&1 | vector --config vector.toml
+./app/svaha_mini_uploader_axum 2>&1 | vector --config vector.toml

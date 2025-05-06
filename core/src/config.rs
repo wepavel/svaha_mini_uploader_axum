@@ -53,6 +53,10 @@ pub struct Config {
 
     #[arg(long, env, default_value = "false")]
     pub production: bool,
+
+
+    #[arg(long, env, default_value = "104857600")]
+    pub body_size_limit: usize,
 }
 
 

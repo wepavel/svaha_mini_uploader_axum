@@ -1,33 +1,34 @@
-use utoipa_swagger_ui::SwaggerUi;
 use axum::middleware::{self};
-use axum::Router;
-use axum::extract::DefaultBodyLimit;
 use tokio::net::TcpListener;
 use tokio::signal;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use tower_http::{compression::CompressionLayer, decompression::RequestDecompressionLayer, services::ServeDir};
-use axum::routing::get_service;
+use tower_http::{compression::CompressionLayer, decompression::RequestDecompressionLayer};
+
 use api::custom_tracing;
-use axum::routing::get;
+
 use tower_http::cors::{Any, CorsLayer};
-use tower_http::trace::TraceLayer;
+
 use tower_http::timeout::TimeoutLayer;
 use std::time::Duration;
-use axum::extract::State;
+
 use std::net::SocketAddr;
 use std::sync::Arc;
+use axum::extract::DefaultBodyLimit;
 use api::custom_exceptions::{ErrorCode, global_error_handler};
+use api::exceptions;
+
 use api::get_api;
 use core::logging::init_logger;
-
+use tower_http::limit::RequestBodyLimitLayer;
 use core::config::CONFIG;
-
+use tracing_subscriber;
+use tower_http::trace::TraceLayer;
 use services::AppState;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> std::io::Result<()> {
-    init_logger(env!("CARGO_CRATE_NAME"));
+    init_logger("svaha_mini_uploader_axum");
     // tracing_subscriber::registry()
     //     .with(
     //         tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
@@ -38,7 +39,8 @@ async fn main() -> std::io::Result<()> {
     //                 tower_http=debug,\
     //                 axum::rejection=trace,\
     //                 api=info,\
-    //                 http_response=info,\"
+    //                 custom_exceptions=info,\
+    //                 http_response=info,\
     //                 http_failure=info",
     //                 env!("CARGO_CRATE_NAME")
     //             ).into()
@@ -64,17 +66,23 @@ async fn main() -> std::io::Result<()> {
 
     router = router
         .layer(cors)
+        // .layer(tower::limit::ConcurrencyLimitLayer::new(500))
         .layer(RequestDecompressionLayer::new())  // Сначала разжимаем входящие запросы
         .layer(CompressionLayer::new())  // Затем сжимаем исходящие ответы
+
+        // 
         .layer(DefaultBodyLimit::disable())
+        // .layer(RequestBodyLimitLayer::new(CONFIG.body_size_limit))
         .layer(custom_tracing::create_tracing_layer())
+        // .layer(middleware::from_fn(custom_tracing::request_data_middleware))
         .layer(middleware::from_fn(global_error_handler))
-        .layer((
-            // TraceLayer::new_for_http(),
-            // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
-            // requests don't hang forever.
-            TimeoutLayer::new(Duration::from_secs(60)),
-        ))
+        // .layer(middleware::from_fn(exceptions::global_error_handler))
+        // .layer((
+        //     // TraceLayer::new_for_http(),
+        //     // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
+        //     // requests don't hang forever.
+        //     TimeoutLayer::new(Duration::from_secs(60)),
+        // ))
     ;
 
 

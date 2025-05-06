@@ -4,7 +4,7 @@ use axum::extract::Multipart;
 // use core::exceptions::{ErrorCode, global_error_handler};
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
-use crate::exceptions::{JsonResponse, ErrorCode, BadResponseObject};
+use crate::custom_exceptions::{JsonResponse, ErrorCode, BadResponseObject};
 
 use serde_json::Value;
 use axum::{Json, extract::Path};
@@ -54,8 +54,11 @@ impl PUK {
 )]
 async fn test_endpoint(Path(number): Path<i32>) -> JsonResponse {
     if number == 2 {
-        return JsonResponse::from(ErrorCode::AuthorizeError.details()
-            .with_detail("reason", "You have already taken access to this endpoint."));
+        // return JsonResponse::from(ErrorCode::AuthorizeError.details()
+        //     .with_detail("reason", "You have already taken access to this endpoint."));
+        return ErrorCode::BrideError.details()
+            .with("reason", "You have already taken access to this endpoint.")
+            .into();
     }
 
     // tracing::info!("Hello from tracing!");

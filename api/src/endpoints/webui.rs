@@ -37,7 +37,7 @@ pub async fn upload_ui(Path((session_id, track_id, file_type)): Path<(String, St
     }
 
     tracing::info!("Hello from tracing!");
-    let html_code = file_upload_html(&session_id, &track_id, &file_type);
+    let html_code = file_upload_html(&file_type);
 
     HtmlResponse::Ok(html_code)
 }
@@ -66,105 +66,110 @@ pub async fn upload_ui_multiple(Path((session_id, track_id)): Path<(String, Stri
 }
 
 
-fn file_upload_html(session_id: &str, track_id: &str, file_type: &str) -> String {
-    let p0 = r#"
+fn file_upload_html(file_type: &str) -> String {
+    let html = format!(r#"
 <!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <title>File Upload</title>
     <style>
-        * {
+        * {{
             font-size: 12px !important;
-            color: #0f0 ;
-            font-family: Andale Mono !important;
+            color: #0f0;
+            font-family: "Andale Mono", monospace !important;
             background-color: #000;
-        }
-
-        .progress-wrapper {
-            width:100%;
-        }
-
-        .progress-wrapper .progress {
+        }}
+        .progress-wrapper {{
+            width: 100%;
+            margin-bottom: 10px;
+        }}
+        .progress-wrapper .progress {{
             background-color: #0f0;
-            width:0%;
-            padding:5px 0px 5px 0px;
+            width: 0%;
+            padding: 5px 0;
             color: black;
-        }
-
-        .file-upload-button {
+            text-align: center;
+        }}
+        .file-upload-button {{
             padding: 5px 10px;
             border: 1px solid #0f0;
             cursor: pointer;
             display: inline-block;
-            margin-top: 30px;
-        }
-
-        .file-upload input[type="file"] {
+            margin-top: 10px;
+        }}
+        .file-upload input[type="file"] {{
             display: none;
-        }
-
-         input {
-             font-size: 12px !important;
-             color: #0f0 ;
-             font-family: Andale Mono !important;
-             background-color: #000;
-                }
-
+        }}
+        .file-path {{
+            margin-left: 10px;
+        }}
     </style>
-    "#;
+</head>
+<body>
+    <form id="form1">
+        <div class="file-upload">
+            <label for="file" class="file-upload-button">Choose {file_type} file</label>
+            <input id="file" type="file" onchange="updateFilePath('file', 'file-path')" />
+            <span id="file-path" class="file-path"></span>
+        </div>
+        <div class="progress-wrapper">
+            <div id="progress-bar-file" class="progress"></div>
+        </div>
 
-    let p1 = r#"
+        <button type="button" onclick="postFile()">Upload File</button>
+    </form>
+
     <script>
-        function postFile() {
-            var formdata = new FormData();
+        function updateFilePath(inputId, pathId) {{
+            var filePath = document.getElementById(inputId).value;
+            document.getElementById(pathId).textContent = filePath.split('\\').pop();
+        }}
 
-            formdata.append('file1', document.getElementById('file1').files[0]);
+        function postFile() {{
+            var formdata = new FormData();
+            var file = document.getElementById('file').files[0];
+
+            if (!file) {{
+                alert('Please select a file');
+                return;
+            }}
+
+            formdata.append("track", file);
+            formdata.append("path", "test");
 
             var request = new XMLHttpRequest();
 
-            request.upload.addEventListener('progress', function (e) {
-                var file1Size = document.getElementById('file1').files[0].size;
-                console.log(file1Size);
+            request.upload.addEventListener('progress', function (e) {{
+                var percent = Math.round((e.loaded / file.size) * 100);
+                document.getElementById('progress-bar-file').style.width = percent + '%';
+                document.getElementById('progress-bar-file').innerHTML = percent + '%';
+            }});
 
-                if (e.loaded <= file1Size) {
-                    var percent = Math.round(e.loaded / file1Size * 100);
-                    document.getElementById('progress-bar-file1').style.width = percent + '%';
-                    document.getElementById('progress-bar-file1').innerHTML = percent + '%';
-                }
+            request.onload = function() {{
+                if (request.status === 200) {{
+                    console.log('File uploaded successfully');
+                    var response = JSON.parse(request.responseText);
+                    console.log('{file_type} file:', response.file_name, 'Size:', response.file_size);
+                }} else {{
+                    console.error('An error occurred during the upload');
+                    alert('Upload failed. Please try again.');
+                }}
+            }};
 
-                if(e.loaded == e.total){
-                    document.getElementById('progress-bar-file1').style.width = '100%';
-                    document.getElementById('progress-bar-file1').innerHTML = '100%';
-                }
-            });
-    "#;
-
-    let p2 = format!(r#"
-            request.open('post', 'http://127.0.0.1:8023/api/v1/upload_s3/{}/s/s');
-            // request.timeout = 45000;
+            request.open('post', "/api/v1/upload/upload-track-single");
             request.send(formdata);
-    "#, session_id);
-
-    let p3 = r#"
-        }
+        }}
     </script>
-</head>
-<form id="form1">
-
-    <div class="file-upload">
-        <label for="file1" class="file-upload-button">Choose file</label>
-        <input id="file1" type="file" />
-
-    </div>
-    <div class="progress-wrapper">
-        <div id="progress-bar-file1" class="progress"></div>
-    </div>
-    <button type="button" onclick="postFile()">Upload File</button>
-</form>
+</body>
 </html>
-    "#;
+    "#, file_type = file_type);
 
-    format!("{}{}{}{}", p0, p1, p2, p3)
+    html
 }
+
+
+
 
 
 

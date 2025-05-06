@@ -7,7 +7,7 @@ use s3::{S3Manager};
 use anyhow::Result;
 use my_core::config::CONFIG;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AppState {
     pub s3: S3Manager,
 }

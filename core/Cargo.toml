@@ -36,3 +36,4 @@ clap.workspace = true # .env struct parser
 
 #----------Generating data-----------
 ulid.workspace = true
+regex = "1.11.1"

@@ -12,10 +12,12 @@ services.workspace = true
 tokio.workspace = true
 tokio-util.workspace = true
 futures-util = "0.3.31"
+tower.workspace = true
 
 #------------Logging-------------
 tracing.workspace = true
 tower-http = { workspace = true, features = ["trace"]}
+tracing-subscriber.workspace = true
 
 #---------Serialization----------
 serde = { workspace = true, features = ["derive"] }
@@ -25,6 +27,7 @@ once_cell = {workspace = true, features = ["default"]} # once compiling config
 
 #--------Backend framework--------
 axum = { workspace = true, features = ["tracing"] }
+hyper.workspace = true
 
 #------------OpenAPI-------------
 utoipa = { workspace = true, features = ["axum_extras"] }

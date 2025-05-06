@@ -1,5 +1,8 @@
 services:
   uploader:
+    build:
+      context: ./
+      dockerfile: Dockerfile
     image: '${DOCKER_IMAGE_UPLOADER}:${TAG-latest}'
     #    env_file:
     #      - .env

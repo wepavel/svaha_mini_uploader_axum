@@ -5,6 +5,7 @@ use axum::{
     Json as AxumJson,
     middleware::Next,
     body::{to_bytes},
+    BoxError
 };
 use serde::{Serialize, Deserialize};
 use std::{collections::HashMap, error::Error as StdError, fmt};
@@ -13,9 +14,8 @@ use utoipa::ToSchema;
 use serde_json::json;
 use lazy_regex::regex;
 
-
 #[macro_export]
-macro_rules! try_json {
+macro_rules! json_err {
     ($expr:expr) => {
         match $expr {
             Ok(val) => val,
@@ -24,7 +24,29 @@ macro_rules! try_json {
             }
         }
     };
+    ($expr:expr, $error_obj:expr) => {
+        match $expr {
+            Ok(val) => val,
+            Err(err) => {
+                return JsonResponse::Err(
+                    $error_obj.with("error", err.to_string())
+                );
+            }
+        }
+    };
 }
+#[macro_export]
+macro_rules! json_opt {
+    ($expr:expr, $error_obj:expr) => {
+        match $expr {
+            Some(val) => val,
+            None => {
+                return JsonResponse::Err($error_obj);
+            }
+        }
+    };
+}
+
 
 // Базовая структура для ошибок API
 #[derive(Debug, Clone, Serialize, Deserialize, Default, ToSchema)]
@@ -36,14 +58,14 @@ macro_rules! try_json {
     "notification": false
 }))]
 pub struct BadResponseObject {
-    pub code: u16,
-    pub msg: String,
+    code: u16,
+    msg: String,
     // #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub details: HashMap<String, serde_json::Value>,
+    details: HashMap<String, serde_json::Value>,
     // #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub redirect: bool,
+    redirect: bool,
     // #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub notification: bool,
+    notification: bool,
 }
 
 impl fmt::Display for BadResponseObject {
@@ -127,7 +149,7 @@ macro_rules! define_error_codes {
             pub fn details(&self) -> BadResponseObject {
                 match self {
                     $(ErrorCode::$variant => {
-                        let mut response = BadResponseObject {
+                        let response = BadResponseObject {
                             code: $code,
                             msg: $msg.to_string(),
                             ..Default::default()
@@ -153,14 +175,16 @@ impl From<ErrorCode> for BadResponseObject {
     }
 }
 
+//---------------------------------------------------------------------------
 // Упрощенная функция очистки сообщения об ошибке
 fn clean_error_message(message: &str) -> String {
-    let re_unreadable = regex!(r"\(/\x00X.\x01\x00");
+    let re_unreadable = regex!(r"\(�/�\x00X.\x01\x00");
     let re_unwanted = regex!(r"[^a-zA-Zа-яА-Я0-9\s:\-,.'`]");
 
     re_unwanted.replace_all(&re_unreadable.replace_all(message, ""), "")
         .trim().to_string()
 }
+
 
 // Упрощенный глобальный обработчик ошибок
 pub async fn global_error_handler(
@@ -169,6 +193,7 @@ pub async fn global_error_handler(
 ) -> Result<Response, Response> {
     let path = request.uri().path().to_string();
     let response = next.run(request).await;
+
 
     // Если ответ успешный - просто возвращаем
     if response.status().is_success() {
@@ -187,18 +212,33 @@ pub async fn global_error_handler(
                 .into_response()
         ),
     };
-
+    let body_str = String::from_utf8_lossy(&bytes);
     // Основная логика обработки ошибок
-    let error_response = if let Ok(bad_response) = serde_json::from_slice::<BadResponseObject>(&bytes) {
-        // Уже сформированная ошибка - просто добавляем endpoint
-        bad_response.with("endpoint", &path)
+    let error_response = if let Ok(mut bad_response) = serde_json::from_slice::<BadResponseObject>(&bytes) {
+        // Уже сформированная ошибка - сохраняем все детали и добавляем endpoint, если его еще нет
+        if !bad_response.details.contains_key("endpoint") {
+            bad_response.details.insert("endpoint".to_string(), json!(path));
+        }
+        bad_response
     } else {
         match status {
             StatusCode::BAD_REQUEST => {
                 // Ошибка валидации
                 let message = String::from_utf8_lossy(&bytes);
+                tracing::info!(
+                    // target: "response_trace",
+                    "Error response generated: Code - {}, Status - {:?}",
+                    StatusCode::BAD_REQUEST,
+                    status
+                );
+                
                 ErrorCode::ValidationError.details()
                     .with("reason", clean_error_message(&message))
+                    .with("endpoint", &path)
+            },
+            StatusCode::PAYLOAD_TOO_LARGE => {
+                // Тело запроса больше лимита
+                ErrorCode::PayloadTooLarge.details()
                     .with("endpoint", &path)
             },
             StatusCode::NOT_FOUND => {
@@ -223,6 +263,8 @@ pub async fn global_error_handler(
 
     Ok(error_response.into_response())
 }
+
+//----------------------------------------------------------
 
 // Стандартные типы для ответов API
 pub trait IntoCustomResponse {
@@ -260,7 +302,14 @@ macro_rules! define_responses {
                 fn into_response(self) -> Response {
                     match self {
                         Self::Ok(data) => data.into_custom_response(),
-                        Self::Err(err) => err.into_response(),
+                        Self::Err(err) => {
+                            let _status = if (4000..5000).contains(&err.code) {
+                                StatusCode::BAD_REQUEST
+                            } else {
+                                StatusCode::INTERNAL_SERVER_ERROR
+                            };
+                            AxumJson(err).into_response()
+                        }
                     }
                 }
             }
@@ -326,6 +375,7 @@ define_error_codes! {
     WrongFormat => 4411, "Wrong format";
 
     // 4501 - 4508: API and Request Errors
+    PayloadTooLarge => 4513, "Payload too large";
     Unauthorized => 4501, "Sorry, you are not allowed to access this service: UnauthorizedRequest";
     AuthorizeError => 4502, "Authorization error";
     ForbiddenError => 4503, "Forbidden";
